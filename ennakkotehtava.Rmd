@@ -1,0 +1,56 @@
+---
+title: "Yhteydenottojen raportointi"
+author: "Petja Sjö"
+date: "7/7/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if (!require(tidyverse)) {install.packages("tidyverse")}
+if (!require(ggplot2)) {install.packages("ggplot2")}
+```
+```{r data, include = FALSE}
+SAPnumber <- sort(rep(seq(from = 111, to = 121, by=1),3)) #haastattelijan ID
+targetID <- seq(from = 1001, to = 1001+length(SAPnumber)-1, by = 1) #kohdehenkilön ID
+ajat <- sample(seq(as.POSIXct('01/07/2020', format="%d/%m/%y"), as.POSIXct("08/07/2020", format="%d/%m/%y"), by="15 mins"), 50)
+received <- sample(ajat, length(SAPnumber)) #haastattelija ottanut vastaan 
+actionTime <- received+runif(length(SAPnumber), 0, 518400) #toimenpiteen ajankohta
+contactTime <- actionTime-received
+
+df <- data.frame("SAPnumber"=SAPnumber, "targetID"=targetID, "received"=received, "actionTime"=actionTime, "contactTime"=contactTime)
+
+```
+
+Simuloidun datan esittely ja kontakin ottamiseen kuluneen ajan keskiarvo
+```{r summary}
+print(df)
+mean(df$contactTime)
+```
+
+Jaetaan yhteydenottoon kulunut aika kategorioihin keston mukaan
+```{r duration, include=FALSE}
+df$duration <- 0
+df$duration[df$contactTime<1440] = 1 #less than 1 day
+df$duration[(df$contactTime>1440) & (df$contactTime <2880)] = 2 #less than 2 days
+df$duration[(df$contactTime>2880) & (df$contactTime <4320)] = 3 #less than 3 days
+df$duration[df$contactTime>4320] = 4 #more than 3 days
+```
+```{r plots, echo=FALSE}
+
+colors = c("green","yellow","orange", "red")
+
+ggplot(df, aes(x=duration))+
+  geom_histogram(binwidth=1, fill=colors)+
+  labs(x="aika yhteydenottoon päivissä", y="määrä")
+  
+```
+
+Tulostetaan tapaukset, joissa kesto ylittänyt kolme päivää
+```{r final, echo=TRUE}
+subset(df, duration==4)
+```
+
+
+
+
